@@ -1,0 +1,13 @@
+# Dependencies
+node_modules/
+
+# Large model weights — not committed to git (exceed GitHub's 100MB limit).
+# Place the .onnx files in models/ manually or via deployment volume.
+models/*.onnx
+models/**/*.onnx
+models/**/*.bin
+
+# Logs / env
+*.log
+.env
+.DS_Store
