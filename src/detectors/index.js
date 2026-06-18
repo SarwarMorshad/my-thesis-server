@@ -5,7 +5,9 @@ import { preprocess, preprocessSsd } from "../lib/preprocess.js";
 import { postprocess, postprocessSsd } from "../lib/postprocess.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const MODELS_DIR = path.join(__dirname, "..", "..", "models");
+// Models live in <repo>/models by default; the bundled Electron app overrides
+// this via the MODELS_DIR env var to point at its packaged resources.
+const MODELS_DIR = process.env.MODELS_DIR || path.join(__dirname, "..", "..", "models");
 
 // Model registry — id -> file + output family. SSD models are added in a later phase.
 export const MODELS = {
