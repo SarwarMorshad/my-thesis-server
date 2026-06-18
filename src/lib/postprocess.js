@@ -1,4 +1,4 @@
-import { COCO_CLASSES, CLASS_GROUPS } from "../constants/coco.js";
+import { COCO_CLASSES, CLASS_GROUPS, SSD_LABELS } from "../constants/coco.js";
 
 const NUM_CLASSES = 80;
 
@@ -120,8 +120,48 @@ export function decodeYolov5(output, meta, confidenceThreshold) {
   return boxes;
 }
 
-/** Full postprocess: decode -> NMS -> class filter. */
+/**
+ * Decode SSD MobileNet outputs (boxes are normalized [ymin,xmin,ymax,xmax];
+ * NMS is already applied inside the graph). Just scale, label, and filter.
+ */
+export function decodeSsd(outputs, meta, confidenceThreshold) {
+  const boxes = outputs.detection_boxes.data;
+  const classesArr = outputs.detection_classes.data;
+  const scores = outputs.detection_scores.data;
+  const num = Math.round(outputs.num_detections.data[0]);
+  const { origW, origH } = meta;
+
+  const out = [];
+  for (let i = 0; i < num; i++) {
+    const score = scores[i];
+    if (score < confidenceThreshold) continue;
+    const ymin = boxes[i * 4];
+    const xmin = boxes[i * 4 + 1];
+    const ymax = boxes[i * 4 + 2];
+    const xmax = boxes[i * 4 + 3];
+    const classId = Math.round(classesArr[i]);
+    out.push({
+      classId,
+      className: SSD_LABELS[classId] ?? String(classId),
+      confidence: score,
+      bbox: [
+        xmin * origW,
+        ymin * origH,
+        (xmax - xmin) * origW,
+        (ymax - ymin) * origH,
+      ],
+    });
+  }
+  return out;
+}
+
+/** Full YOLO postprocess: decode -> NMS -> class filter. */
 export function postprocess(family, output, meta, { confidenceThreshold = 0.25, nmsThreshold = 0.55, classFilter = "all" } = {}) {
   const raw = family === "yolov5" ? decodeYolov5(output, meta, confidenceThreshold) : decodeYolov8(output, meta, confidenceThreshold);
   return applyClassFilter(nms(raw, nmsThreshold), classFilter);
+}
+
+/** Full SSD postprocess: decode (NMS already in graph) -> class filter. */
+export function postprocessSsd(outputs, meta, { confidenceThreshold = 0.25, classFilter = "all" } = {}) {
+  return applyClassFilter(decodeSsd(outputs, meta, confidenceThreshold), classFilter);
 }

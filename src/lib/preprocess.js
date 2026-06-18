@@ -43,3 +43,16 @@ export async function preprocess(buffer, inputSize = INPUT_SIZE) {
 
   return { data, meta: { origW, origH, inputSize, scale, padX, padY } };
 }
+
+/**
+ * Preprocess for the SSD MobileNet ONNX graph: raw RGB uint8 in NHWC layout at
+ * the image's native size (the graph resizes + runs NMS internally).
+ */
+export async function preprocessSsd(buffer) {
+  const { data, info } = await sharp(buffer)
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const uint8 = new Uint8Array(data.buffer, data.byteOffset, data.length);
+  return { data: uint8, dims: [1, info.height, info.width, 3], meta: { origW: info.width, origH: info.height } };
+}

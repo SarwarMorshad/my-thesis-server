@@ -11,3 +11,6 @@ models/**/*.bin
 *.log
 .env
 .DS_Store
+
+# Local project context (not committed)
+CLAUDE.md
